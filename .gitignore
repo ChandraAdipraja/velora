@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+
+# env
+.env
+
+# build
+dist/
+build/
+
+# logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Vite
+client/dist
+
+# optional
+coverage/

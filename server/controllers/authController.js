@@ -2,7 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
-// Helper generate token
+// Helper generate token //syaila develover handal
 const generateToken = (user) => {
   return jwt.sign(
     {

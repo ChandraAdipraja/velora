@@ -1,1 +1,109 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@500;600;700&display=swap");
 @import "tailwindcss";
+
+:root {
+	--font-body: "Manrope", sans-serif;
+	--font-display: "Cormorant Garamond", serif;
+	--background: #f4eee4;
+	--surface: rgba(255, 250, 245, 0.82);
+	--surface-strong: rgba(255, 255, 255, 0.94);
+	--border-soft: rgba(33, 48, 78, 0.12);
+	--ink: #16213b;
+	--muted: #617089;
+	--navy: #13223f;
+	--champagne: #c8a86a;
+	--champagne-soft: rgba(200, 168, 106, 0.14);
+}
+
+html {
+	scroll-behavior: smooth;
+}
+
+body {
+	margin: 0;
+	min-width: 320px;
+	font-family: var(--font-body);
+	color: var(--ink);
+	background:
+		radial-gradient(circle at top left, rgba(200, 168, 106, 0.18), transparent 32%),
+		radial-gradient(circle at top right, rgba(19, 34, 63, 0.08), transparent 28%),
+		linear-gradient(180deg, #f7f2e8 0%, #f2ebe0 100%);
+}
+
+#root {
+	min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-display {
+	font-family: var(--font-display);
+	letter-spacing: 0.01em;
+}
+
+::selection {
+	background: rgba(19, 34, 63, 0.16);
+	color: var(--navy);
+}
+
+* {
+	box-sizing: border-box;
+}
+
+a,
+button,
+input,
+select,
+textarea {
+	-webkit-tap-highlight-color: transparent;
+}
+
+button,
+a {
+	cursor: pointer;
+}
+
+.velora-grid {
+	background-image:
+		linear-gradient(rgba(19, 34, 63, 0.03) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(19, 34, 63, 0.03) 1px, transparent 1px);
+	background-size: 42px 42px;
+}
+
+.text-navy {
+	color: var(--navy);
+}
+
+.text-champagne {
+	color: var(--champagne);
+}
+
+.text-muted {
+	color: var(--muted);
+}
+
+.bg-navy {
+	background-color: var(--navy);
+}
+
+.bg-champagne {
+	background-color: var(--champagne);
+}
+
+.border-soft {
+	border-color: var(--border-soft);
+}
+
+/* Hide scrollbar but keep scrolling */
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    /* IE & Edge */
+    scrollbar-width: none;
+    /* Firefox */
+}

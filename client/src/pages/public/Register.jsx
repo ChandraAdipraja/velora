@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import AuthLayout from "../../layouts/AuthLayout";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
-import { registerUser } from "../../services/AuthService";
+import { registerUser } from "../../services/authService";
 import { useAuth } from "../../context/AuthContext";
 
 const Register = () => {

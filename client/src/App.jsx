@@ -15,6 +15,8 @@ import UserDashboard from "./pages/user/Dashboard";
 import PengurusDashboard from "./pages/pengurus/Dashboard";
 import PengurusReservations from "./pages/pengurus/Reservations";
 import Ticket from "./pages/pengurus/Ticket";
+import PengurusProfile from "./pages/pengurus/Profile";
+
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminReservations from "./pages/admin/Reservation";
 import Reports from "./pages/admin/Reports";
@@ -149,6 +151,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["pengurus"]}>
               <TicketChat />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/pengurus/profile"
+          element={
+            <ProtectedRoute allowedRoles={["pengurus"]}>
+              <PengurusProfile />
             </ProtectedRoute>
           }
         />

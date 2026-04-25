@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
@@ -23,25 +24,198 @@ import {
   Badge,
   GlassCard,
   MetricCard,
-  SectionHeader,
   pageMotion,
 } from "../../components/velora/PlatformKit";
+import { getAllReservationsForStaff } from "../../services/reservationService";
+import { getAllRooms } from "../../services/roomService";
 import {
-  adminNavSummary,
-  notifications,
-  occupancyChart,
-  recentReservations,
-  roomStatusOverview,
-} from "../../data/adminData";
+  getOpenTickets,
+  getMyAssignedTickets,
+} from "../../services/ticketService";
+import { useAuth } from "../../context/AuthContext";
 
 const statusTone = {
-  Confirmed: "success",
-  "Awaiting payment": "warning",
-  "Check-in today": "gold",
-  Cancelled: "danger",
+  pending: "warning",
+  confirmed: "success",
+  checked_in: "gold",
+  completed: "navy",
+  cancelled: "danger",
+};
+
+const formatCurrency = (value) =>
+  `Rp ${Number(value || 0).toLocaleString("id-ID")}`;
+
+const formatStatus = (status) => {
+  const labels = {
+    pending: "Pending",
+    confirmed: "Confirmed",
+    checked_in: "Checked-In",
+    completed: "Completed",
+    cancelled: "Cancelled",
+  };
+  return labels[status] || status;
+};
+
+const formatDateTime = (value) =>
+  new Date(value).toLocaleString("id-ID", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+
+const getLastSevenDays = () => {
+  return Array.from({ length: 7 }).map((_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - index));
+
+    return {
+      date,
+      name: date.toLocaleDateString("id-ID", { weekday: "short" }),
+    };
+  });
 };
 
 const Dashboard = () => {
+  const { token } = useAuth();
+
+  const [reservations, setReservations] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [openTickets, setOpenTickets] = useState([]);
+  const [assignedTickets, setAssignedTickets] = useState([]);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const [reservationData, roomData, openTicketData, assignedTicketData] =
+          await Promise.all([
+            getAllReservationsForStaff(token),
+            getAllRooms(),
+            getOpenTickets(token),
+            getMyAssignedTickets(token),
+          ]);
+
+        setReservations(reservationData.reservations || []);
+        setRooms(roomData.data?.rooms || []);
+        setOpenTickets(openTicketData.tickets || []);
+        setAssignedTickets(assignedTicketData.tickets || []);
+      } catch (error) {
+        console.error("Failed to load admin dashboard:", error);
+      }
+    };
+
+    if (token) fetchDashboard();
+  }, [token]);
+
+  const totalBookings = reservations.length;
+
+  const activeGuests = reservations.filter(
+    (item) => item.status === "checked_in",
+  ).length;
+
+  const availableRooms = rooms.filter(
+    (room) => room.status === "available",
+  ).length;
+
+  const maintenanceRooms = rooms.filter(
+    (room) => room.status === "maintenance",
+  ).length;
+
+  const inactiveRooms = rooms.filter(
+    (room) => room.status === "inactive",
+  ).length;
+
+  const paidRevenue = reservations
+    .filter((item) => item.paymentStatus === "paid")
+    .reduce((sum, item) => sum + Number(item.totalPrice || 0), 0);
+
+  const recentReservations = reservations.slice(0, 6);
+
+  const occupancyChart = useMemo(() => {
+    const days = getLastSevenDays();
+
+    return days.map(({ date, name }) => {
+      const dateKey = date.toDateString();
+
+      const dayReservations = reservations.filter((item) => {
+        const itemDate = new Date(item.checkIn).toDateString();
+        return itemDate === dateKey;
+      });
+
+      const dayRevenue = dayReservations
+        .filter((item) => item.paymentStatus === "paid")
+        .reduce((sum, item) => sum + Number(item.totalPrice || 0), 0);
+
+      return {
+        name,
+        occupancy: dayReservations.length,
+        revenue: Math.round(dayRevenue / 100000),
+      };
+    });
+  }, [reservations]);
+
+  const notifications = [
+    {
+      title: "Pending reservations",
+      body: `${reservations.filter((item) => item.status === "pending").length} bookings need approval.`,
+      tone: "warning",
+    },
+    {
+      title: "Open ticket queue",
+      body: `${openTickets.length} support tickets are waiting for ownership.`,
+      tone: "gold",
+    },
+    {
+      title: "Room maintenance",
+      body: `${maintenanceRooms} rooms are currently under maintenance.`,
+      tone: maintenanceRooms > 0 ? "danger" : "success",
+    },
+  ];
+
+  const roomStatusOverview = [
+    {
+      label: "Available",
+      value: availableRooms,
+      tone: "success",
+    },
+    {
+      label: "Maintenance",
+      value: maintenanceRooms,
+      tone: "warning",
+    },
+    {
+      label: "Inactive",
+      value: inactiveRooms,
+      tone: "danger",
+    },
+    {
+      label: "Total Rooms",
+      value: rooms.length,
+      tone: "navy",
+    },
+  ];
+
+  const adminNavSummary = [
+    {
+      label: "Reservations",
+      value: totalBookings,
+      delta: "Live",
+    },
+    {
+      label: "Open Tickets",
+      value: openTickets.length,
+      delta: "Queue",
+    },
+    {
+      label: "Assigned Tickets",
+      value: assignedTickets.length,
+      delta: "Handled",
+    },
+    {
+      label: "Paid Revenue",
+      value: formatCurrency(paidRevenue),
+      delta: "Paid",
+    },
+  ];
+
   return (
     <AdminLayout>
       <motion.div
@@ -56,31 +230,31 @@ const Dashboard = () => {
         >
           <MetricCard
             label="Total bookings"
-            value="1,284"
-            detail="Across active stay windows"
+            value={totalBookings}
+            detail="All reservation records"
             icon={CalendarRange}
-            trend="+12.4% this month"
+            trend="Live database"
           />
           <MetricCard
             label="Active guests"
-            value="248"
-            detail="In-house and checked in"
+            value={activeGuests}
+            detail="Currently checked-in guests"
             icon={UserRound}
-            trend="+6.8% vs yesterday"
+            trend="Checked-in status"
           />
           <MetricCard
             label="Available rooms"
-            value="34"
-            detail="12 rooms in hold status"
+            value={availableRooms}
+            detail={`${maintenanceRooms} rooms under maintenance`}
             icon={Warehouse}
-            trend="12 rooms under review"
+            trend={`${rooms.length} total rooms`}
           />
           <MetricCard
             label="Revenue"
-            value="Rp 4.8B"
-            detail="Luxury rooms and F&B"
+            value={formatCurrency(paidRevenue)}
+            detail="Paid reservations only"
             icon={DollarSign}
-            trend="+18.2% vs last month"
+            trend="Verified payments"
           />
         </motion.section>
 
@@ -95,17 +269,15 @@ const Dashboard = () => {
                   Occupancy analytics
                 </p>
                 <h2 className="mt-2 text-3xl font-semibold text-navy">
-                  Weekly occupancy and revenue trend
+                  Weekly bookings and paid revenue trend
                 </h2>
               </div>
               <Badge tone="gold">Live sync</Badge>
             </div>
+
             <div className="mt-6 h-88 rounded-[28px] border border-soft bg-white/70 p-4 sm:h-96">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={occupancyChart}
-                  margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
-                >
+                <AreaChart data={occupancyChart}>
                   <defs>
                     <linearGradient
                       id="occupancyFill"
@@ -161,7 +333,7 @@ const Dashboard = () => {
                     stroke="#12213d"
                     fill="url(#occupancyFill)"
                     strokeWidth={3}
-                    name="Occupancy %"
+                    name="Bookings"
                   />
                   <Area
                     type="monotone"
@@ -169,14 +341,14 @@ const Dashboard = () => {
                     stroke="#c8a86a"
                     fill="url(#revenueFill)"
                     strokeWidth={2.5}
-                    name="Revenue (B)"
+                    name="Revenue /100k"
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </GlassCard>
 
-          <div className="space-y-6 min-w-0">
+          <div className="min-w-0 space-y-6">
             <GlassCard className="min-w-0">
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -189,6 +361,7 @@ const Dashboard = () => {
                 </div>
                 <BellRing className="h-5 w-5 text-champagne" />
               </div>
+
               <div className="mt-5 space-y-3">
                 {notifications.map((item) => (
                   <div
@@ -219,11 +392,12 @@ const Dashboard = () => {
                 </div>
                 <Sparkles className="h-5 w-5 text-champagne" />
               </div>
+
               <div className="mt-5 flex flex-wrap gap-2">
                 {[
-                  "Create hold",
-                  "Adjust price",
-                  "Message guest",
+                  "Manage rooms",
+                  "Review reservations",
+                  "View tickets",
                   "Export report",
                 ].map((action) => (
                   <button
@@ -249,8 +423,9 @@ const Dashboard = () => {
                   Booking queue
                 </h3>
               </div>
-              <Badge tone="navy">Today</Badge>
+              <Badge tone="navy">Latest</Badge>
             </div>
+
             <div className="mt-5 overflow-x-auto rounded-[28px] border border-soft bg-white/70">
               <table className="min-w-180 w-full text-left text-sm">
                 <thead className="bg-white/80 text-xs uppercase tracking-[0.22em] text-muted">
@@ -270,27 +445,28 @@ const Dashboard = () => {
                     >
                       <td className="px-4 py-4">
                         <p className="font-semibold text-navy">
-                          {reservation.guest}
+                          {reservation.guestName}
                         </p>
                         <p className="mt-1 text-xs text-muted">
                           {reservation.id}
                         </p>
                       </td>
                       <td className="px-4 py-4 text-muted">
-                        {reservation.room}
+                        {reservation.roomType} #{reservation.roomNumber}
                       </td>
                       <td className="px-4 py-4 text-muted">
-                        {reservation.stay}
+                        {formatDateTime(reservation.checkIn)} -{" "}
+                        {formatDateTime(reservation.checkOut)}
                       </td>
                       <td className="px-4 py-4">
                         <Badge
                           tone={statusTone[reservation.status] || "neutral"}
                         >
-                          {reservation.status}
+                          {formatStatus(reservation.status)}
                         </Badge>
                       </td>
                       <td className="px-4 py-4 text-right font-semibold text-navy">
-                        {reservation.amount}
+                        {formatCurrency(reservation.totalPrice)}
                       </td>
                     </tr>
                   ))}
@@ -304,7 +480,7 @@ const Dashboard = () => {
           variants={pageMotion}
           className="flex flex-col gap-6 lg:flex-row"
         >
-          <GlassCard className="min-w-0 flex-1 h-full">
+          <GlassCard className="min-w-0 h-full flex-1">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-champagne">
@@ -316,6 +492,7 @@ const Dashboard = () => {
               </div>
               <Clock3 className="h-5 w-5 text-champagne" />
             </div>
+
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
               {roomStatusOverview.map((room) => (
                 <div
@@ -336,7 +513,7 @@ const Dashboard = () => {
             </div>
           </GlassCard>
 
-          <GlassCard className="min-w-0 flex-1 h-full">
+          <GlassCard className="min-w-0 h-full flex-1">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-champagne">
@@ -348,7 +525,8 @@ const Dashboard = () => {
               </div>
               <AlertCircle className="h-5 w-5 text-champagne" />
             </div>
-            <div className="mt-5 grid gap-3 grid-cols-1 sm:grid-cols-2">
+
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
               {adminNavSummary.map((stat) => (
                 <div
                   key={stat.label}

@@ -1,90 +1,89 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  Crown,
-  Mail,
-  ShieldCheck,
-  Ticket,
-  WalletCards,
-  CalendarDays,
-} from "lucide-react";
+import { Crown, Mail, ShieldCheck, Ticket, UserRound } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import UserLayout from "../../layouts/UserLayout";
+import PengurusLayout from "../../layouts/PengurusLayout";
 import {
-  Badge,
   GlassCard,
   MetricCard,
   SectionHeader,
   pageMotion,
 } from "../../components/velora/PlatformKit";
-import { getMyReservations } from "../../services/reservationService";
-import { getMyTickets } from "../../services/ticketService";
+import { getAllReservationsForStaff } from "../../services/reservationService";
+import {
+  getMyAssignedTickets,
+  getOpenTickets,
+} from "../../services/ticketService";
 
 const Profile = () => {
   const { authUser, token } = useAuth();
 
   const [reservations, setReservations] = useState([]);
-  const [tickets, setTickets] = useState([]);
+  const [openTickets, setOpenTickets] = useState([]);
+  const [myTickets, setMyTickets] = useState([]);
 
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
-        const [reservationData, ticketData] = await Promise.all([
-          getMyReservations(token),
-          getMyTickets(token),
-        ]);
+        const [reservationData, openTicketData, myTicketData] =
+          await Promise.all([
+            getAllReservationsForStaff(token),
+            getOpenTickets(token),
+            getMyAssignedTickets(token),
+          ]);
 
         setReservations(reservationData.reservations || []);
-        setTickets(ticketData.tickets || []);
+        setOpenTickets(openTicketData.tickets || []);
+        setMyTickets(myTicketData.tickets || []);
       } catch (error) {
-        console.error("Failed to load profile data:", error);
+        console.error("Failed to load pengurus profile:", error);
       }
     };
 
     if (token) fetchProfileData();
   }, [token]);
 
+  const pendingReservations = useMemo(
+    () => reservations.filter((item) => item.status === "pending"),
+    [reservations],
+  );
+
   const activeReservations = useMemo(
     () =>
       reservations.filter((item) =>
-        ["pending", "confirmed", "checked_in"].includes(item.status),
+        ["confirmed", "checked_in"].includes(item.status),
       ),
     [reservations],
   );
 
-  const activeTickets = useMemo(
-    () => tickets.filter((item) => item.status !== "closed"),
-    [tickets],
-  );
-
-  const guestName = authUser?.name || "Guest";
-  const guestEmail = authUser?.email || "-";
+  const staffName = authUser?.name || "Pengurus";
+  const staffEmail = authUser?.email || "-";
 
   const profileHighlights = [
     {
-      label: "Account Name",
-      value: guestName,
+      label: "Staff Name",
+      value: staffName,
       icon: Crown,
     },
     {
       label: "Role",
-      value: authUser?.role || "user",
+      value: authUser?.role || "pengurus",
       icon: ShieldCheck,
     },
     {
       label: "Email",
-      value: guestEmail,
+      value: staffEmail,
       icon: Mail,
     },
     {
-      label: "Active Tickets",
-      value: activeTickets.length,
+      label: "Assigned Tickets",
+      value: myTickets.length,
       icon: Ticket,
     },
   ];
 
   return (
-    <UserLayout>
+    <PengurusLayout>
       <motion.div
         initial="initial"
         animate="animate"
@@ -92,25 +91,17 @@ const Profile = () => {
         className="space-y-8"
       >
         <motion.section variants={pageMotion}>
-          <SectionHeader
-            label="Profile"
-            title="Your Velora account profile."
-            description="Review your account details, reservation activity, and support ticket summary."
-          />
-        </motion.section>
-
-        <motion.section variants={pageMotion} className="grid gap-6">
           <GlassCard className="p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-(--muted)">
-                  Account details
+                  Staff details
                 </p>
                 <h3 className="mt-2 text-2xl font-semibold text-(--navy)">
                   Profile essentials
                 </h3>
               </div>
-              <Crown className="h-5 w-5 text-(--champagne)" />
+              <UserRound className="h-5 w-5 text-(--champagne)" />
             </div>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -126,6 +117,7 @@ const Profile = () => {
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(212,175,55,0.12)] text-(--champagne)">
                         <Icon className="h-4 w-4" />
                       </div>
+
                       <div>
                         <p className="text-xs uppercase tracking-[0.22em] text-(--muted)">
                           {item.label}
@@ -140,29 +132,14 @@ const Profile = () => {
               })}
             </div>
 
-            <div className="mt-6 grid gap-3">
-              <div className="rounded-2xl border border-(--border-soft) bg-white/70 p-4">
-                <p className="text-xs uppercase tracking-[0.22em] text-(--muted)">
-                  Contact
-                </p>
-                <div className="mt-3 space-y-2 text-sm text-(--muted)">
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-(--champagne)" />
-                    {guestEmail}
-                  </div>
-                </div>
-              </div>
+            <div className="mt-6 rounded-2xl border border-(--border-soft) bg-white/70 p-4">
+              <p className="text-xs uppercase tracking-[0.22em] text-(--muted)">
+                Contact
+              </p>
 
-              <div className="rounded-2xl border border-(--border-soft) bg-white/70 p-4">
-                <p className="text-xs uppercase tracking-[0.22em] text-(--muted)">
-                  Payment options
-                </p>
-                <div className="mt-3 flex items-center justify-between gap-3">
-                  <span className="font-semibold text-(--navy)">
-                    Pay Online & Pay at Check-In
-                  </span>
-                  <WalletCards className="h-5 w-5 text-(--champagne)" />
-                </div>
+              <div className="mt-3 flex items-center gap-2 text-sm text-(--muted)">
+                <Mail className="h-4 w-4 text-(--champagne)" />
+                {staffEmail}
               </div>
             </div>
           </GlassCard>
@@ -173,23 +150,25 @@ const Profile = () => {
           className="grid gap-6 md:grid-cols-3"
         >
           <MetricCard
-            label="Total reservations"
-            value={reservations.length}
-            detail="All booking history"
+            label="Pending reservations"
+            value={pendingReservations.length}
+            detail="Need staff approval"
           />
+
           <MetricCard
-            label="Active stays"
+            label="Active reservations"
             value={activeReservations.length}
-            detail="Pending, confirmed, or checked-in"
+            detail="Confirmed or checked-in guests"
           />
+
           <MetricCard
-            label="Support tickets"
-            value={activeTickets.length}
-            detail="Active support channels"
+            label="Open queue tickets"
+            value={openTickets.length}
+            detail="Waiting for staff ownership"
           />
         </motion.section>
       </motion.div>
-    </UserLayout>
+    </PengurusLayout>
   );
 };
 

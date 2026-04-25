@@ -1,98 +1,142 @@
 const Room = require("../models/Room");
+const Reservation = require("../models/Reservation");
+
+/* =========================
+GET ALL ROOMS
+========================= */
 
 const getAllRooms = async (req, res) => {
   try {
-    const rooms = await Room.find({
-      status: { $ne: "inactive" },
-    }).sort({ roomNumber: 1 });
+    const rooms = await Room.find().sort({
+      roomNumber: 1,
+    });
 
-    return res.status(200).json({
-      message: "Data semua kamar berhasil diambil",
+    res.json({
       rooms,
     });
   } catch (error) {
-    return res.status(500).json({
-      message: "Terjadi kesalahan pada server",
-      error: error.message,
+    res.status(500).json({
+      message: error.message,
     });
   }
 };
 
-const getGroupedRoomsByType = async (req, res) => {
+/* =========================
+CREATE ROOM
+========================= */
+
+const createRoom = async (req, res) => {
   try {
-    const groupedRooms = await Room.aggregate([
-      {
-        $match: {
-          status: "available",
-        },
-      },
-      {
-        $group: {
-          _id: "$roomType",
-          availableUnits: { $sum: 1 },
-          startingPrice: { $min: "$pricePerHour" },
-          capacity: { $first: "$capacity" },
-          size: { $first: "$size" },
-          bedType: { $first: "$bedType" },
-          image: { $first: "$image" },
-          description: { $first: "$description" },
-          facilities: { $first: "$facilities" },
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          roomType: "$_id",
-          availableUnits: 1,
-          startingPrice: 1,
-          capacity: 1,
-          size: 1,
-          bedType: 1,
-          image: 1,
-          description: 1,
-          facilities: 1,
-        },
-      },
-      {
-        $sort: { roomType: 1 },
-      },
-    ]);
-
-    return res.status(200).json({
-      message: "Data kamar per tipe berhasil diambil",
-      rooms: groupedRooms,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      message: "Terjadi kesalahan pada server",
-      error: error.message,
-    });
-  }
-};
-
-const getRoomUnitsByType = async (req, res) => {
-  try {
-    const { roomType } = req.params;
-
-    const rooms = await Room.find({
+    const {
+      roomNumber,
       roomType,
-      status: { $ne: "inactive" },
-    }).sort({ roomNumber: 1 });
+      pricePerHour,
+      capacity,
+      size,
+      facilities,
+      image,
+      status,
+    } = req.body;
 
-    return res.status(200).json({
-      message: `Data unit kamar ${roomType} berhasil diambil`,
-      rooms,
+    if (!roomNumber || !roomType || !pricePerHour) {
+      return res.status(400).json({
+        message: "Data kamar belum lengkap",
+      });
+    }
+
+    const exists = await Room.findOne({
+      roomNumber,
+    });
+
+    if (exists) {
+      return res.status(400).json({
+        message: "Nomor kamar sudah ada",
+      });
+    }
+
+    const room = await Room.create({
+      roomNumber,
+      roomType,
+      pricePerHour,
+      capacity,
+      size,
+      facilities,
+      image,
+      status: status || "available",
+    });
+
+    res.status(201).json({
+      message: "Kamar berhasil dibuat",
+      room,
     });
   } catch (error) {
-    return res.status(500).json({
-      message: "Terjadi kesalahan pada server",
-      error: error.message,
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+/* =========================
+UPDATE ROOM
+========================= */
+
+const updateRoom = async (req, res) => {
+  try {
+    const room = await Room.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+
+    if (!room) {
+      return res.status(404).json({
+        message: "Kamar tidak ditemukan",
+      });
+    }
+
+    res.json({
+      message: "Kamar diperbarui",
+      room,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+/* =========================
+DELETE ROOM
+========================= */
+
+const deleteRoom = async (req, res) => {
+  try {
+    const usedReservation = await Reservation.findOne({
+      room: req.params.id,
+      status: {
+        $ne: "cancelled",
+      },
+    });
+
+    if (usedReservation) {
+      return res.status(400).json({
+        message: "Kamar punya riwayat reservasi, ubah ke inactive saja.",
+      });
+    }
+
+    await Room.findByIdAndDelete(req.params.id);
+
+    res.json({
+      message: "Kamar dihapus",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
     });
   }
 };
 
 module.exports = {
   getAllRooms,
-  getGroupedRoomsByType,
-  getRoomUnitsByType,
+  createRoom,
+  updateRoom,
+  deleteRoom,
 };

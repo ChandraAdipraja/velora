@@ -47,13 +47,13 @@ export const dashboardActions = [
   {
     label: "My Reservations",
     detail: "Review schedules, payment, and status",
-    to: "/user/reservations",
+    to: "/user/my-reservations",
     icon: CalendarDays,
   },
   {
     label: "Chat with Hotel",
     detail: "Ask about services before or during a stay",
-    to: "/user/chat",
+    to: "/user/tickets",
     icon: MessageSquareText,
   },
 ];

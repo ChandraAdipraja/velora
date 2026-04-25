@@ -22,7 +22,7 @@ const navItems = [
     label: "Support Tickets",
     icon: MessageSquareText,
   },
-  { to: "/profile", label: "Profile", icon: UserRound },
+  { to: "/pengurus/profile", label: "Profile", icon: UserRound },
 ];
 
 const PengurusLayout = ({ children }) => {

@@ -176,6 +176,34 @@ const getMyReservations = async (req, res) => {
   }
 };
 
+const getReservationById = async (req, res) => {
+  try {
+    const reservation = await Reservation.findById(req.params.id).populate(
+      "room",
+    );
+
+    if (!reservation) {
+      return res.status(404).json({
+        message: "Not found",
+      });
+    }
+
+    if (reservation.user.toString() !== req.user.id) {
+      return res.status(403).json({
+        message: "Forbidden",
+      });
+    }
+
+    res.json({
+      reservation,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 /*
 =================================================
 USER - RECEIPT DETAIL
@@ -242,14 +270,6 @@ UPLOAD PAYMENT PROOF
 
 const uploadPaymentProof = async (req, res) => {
   try {
-    const { paymentProof } = req.body;
-
-    if (!paymentProof) {
-      return res.status(400).json({
-        message: "Bukti pembayaran wajib diisi",
-      });
-    }
-
     const reservation = await Reservation.findById(req.params.id);
 
     if (!reservation) {
@@ -264,14 +284,27 @@ const uploadPaymentProof = async (req, res) => {
       });
     }
 
-    reservation.paymentProof = paymentProof;
+    if (reservation.paymentMethod !== "online") {
+      return res.status(400).json({
+        message: "Reservasi ini tidak menggunakan pembayaran online",
+      });
+    }
 
+    if (!req.file) {
+      return res.status(400).json({
+        message: "Bukti pembayaran wajib diunggah",
+      });
+    }
+
+    reservation.paymentProof = `/payment-proofs/${req.file.filename}`;
     reservation.paymentStatus = "pending";
 
     await reservation.save();
 
     return res.status(200).json({
-      message: "Bukti pembayaran berhasil dikirim",
+      message: "Bukti pembayaran berhasil diunggah",
+      paymentProof: reservation.paymentProof,
+      reservation,
     });
   } catch (error) {
     return res.status(500).json({
@@ -320,6 +353,7 @@ const getAllReservationsForStaff = async (req, res) => {
 
       durationHours: item.durationHours,
 
+      paymentProof: item.paymentProof || "",
       hasPaymentProof: !!item.paymentProof,
     }));
 
@@ -457,4 +491,5 @@ module.exports = {
   verifyPayment,
   rejectPayment,
   updateReservationStatus,
+  getReservationById,
 };

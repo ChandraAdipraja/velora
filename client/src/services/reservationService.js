@@ -29,6 +29,12 @@ export const getMyReservations = async (token) => {
   return response.data;
 };
 
+export const getReservationById = async (id, token) => {
+  const response = await axios.get(`${API_URL}/${id}`, authHeader(token));
+
+  return response.data;
+};
+
 export const getReservationDetail = async (id, token) => {
   const response = await axios.get(`${API_URL}/${id}`, {
     headers: {
@@ -39,16 +45,24 @@ export const getReservationDetail = async (id, token) => {
   return response.data;
 };
 
-export const uploadPaymentProof = async (id, payload, token) => {
-  const response = await axios.post(`${API_URL}/${id}/payment-proof`, payload, {
-    headers: {
-      Authorization: `Bearer ${token}`,
+export const uploadPaymentProofFile = async (id, file, token) => {
+  const formData = new FormData();
+
+  formData.append("paymentProof", file);
+
+  const response = await axios.post(
+    `${API_URL}/${id}/payment-proof`,
+    formData,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
     },
-  });
+  );
 
   return response.data;
 };
-
 /*
 PENGURUS / ADMIN
 - get all reservations

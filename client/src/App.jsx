@@ -10,6 +10,7 @@ import UserTicket from "./pages/user/Ticket";
 import UserTicketChat from "./pages/user/TicketChat";
 import MyReservations from "./pages/user/MyReservations";
 import Receipt from "./pages/user/Receipt";
+import Payment from "./pages/user/Payment";
 
 import UserDashboard from "./pages/user/Dashboard";
 import PengurusDashboard from "./pages/pengurus/Dashboard";
@@ -117,6 +118,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["user"]}>
               <UserTicketChat />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/user/payment/:id"
+          element={
+            <ProtectedRoute allowedRoles={["user"]}>
+              <Payment />
             </ProtectedRoute>
           }
         />

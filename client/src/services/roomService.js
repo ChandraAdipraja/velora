@@ -8,11 +8,10 @@ const authHeader = (token) => ({
   },
 });
 
-/*
-USER / PUBLIC
-*/
-export const getAllRooms = () => {
-  return axios.get(API_URL);
+// USER / PUBLIC
+export const getAllRooms = async () => {
+  const response = await axios.get(API_URL);
+  return response.data;
 };
 
 export const getGroupedRooms = async () => {
@@ -25,17 +24,22 @@ export const getRoomDetailByType = async (roomType) => {
   return response.data;
 };
 
-/*
-ADMIN
-*/
-export const createRoom = (payload, token) => {
-  return axios.post(API_URL, payload, authHeader(token));
+// ADMIN
+export const createRoom = async (payload, token) => {
+  const response = await axios.post(API_URL, payload, authHeader(token));
+  return response.data;
 };
 
-export const updateRoom = (id, payload, token) => {
-  return axios.patch(`${API_URL}/${id}`, payload, authHeader(token));
+export const updateRoom = async (id, payload, token) => {
+  const response = await axios.patch(
+    `${API_URL}/${id}`,
+    payload,
+    authHeader(token),
+  );
+  return response.data;
 };
 
-export const deleteRoom = (id, token) => {
-  return axios.delete(`${API_URL}/${id}`, authHeader(token));
+export const deleteRoom = async (id, token) => {
+  const response = await axios.delete(`${API_URL}/${id}`, authHeader(token));
+  return response.data;
 };

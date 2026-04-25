@@ -8,10 +8,12 @@ const {
   verifyPayment,
   rejectPayment,
   updateReservationStatus,
+  getReservationById,
 } = require("../controllers/reservationController");
 
 const protect = require("../middleware/authMiddleware");
 const authorizeRoles = require("../middleware/roleMiddleware");
+const uploadPaymentProofFile = require("../middleware/paymentUpload");
 
 const router = express.Router();
 
@@ -22,10 +24,13 @@ router.get("/my", protect, authorizeRoles("user"), getMyReservations);
 
 router.post("/", protect, authorizeRoles("user"), createReservation);
 
+router.get("/:id", protect, authorizeRoles("user"), getReservationById);
+
 router.post(
   "/:id/payment-proof",
   protect,
   authorizeRoles("user"),
+  uploadPaymentProofFile.single("paymentProof"),
   uploadPaymentProof,
 );
 

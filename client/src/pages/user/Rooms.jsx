@@ -35,7 +35,7 @@ const Rooms = () => {
     const fetchRooms = async () => {
       try {
         const data = await getGroupedRooms();
-        setRooms(data.rooms || []);
+        setRooms(data.rooms || data.groupedRooms || []);
       } catch (error) {
         console.error(error);
       } finally {
@@ -142,8 +142,15 @@ const Rooms = () => {
                         <p className="text-xs uppercase tracking-[0.2em] text-(--muted)">
                           Hourly from
                         </p>
-                        <p className="mt-1 text-xl font-semibold text-(--navy)">
-                          Rp {room.startingPrice.toLocaleString("id-ID")}
+                        <p className="text-lg font-semibold text-(--navy)">
+                          Rp{" "}
+                          {Number(room.pricePerHour || 0).toLocaleString(
+                            "id-ID",
+                          )}
+                          <span className="text-sm font-normal text-(--muted)">
+                            {" "}
+                            / hour
+                          </span>
                         </p>
                       </div>
 

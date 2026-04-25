@@ -17,10 +17,7 @@ import {
   pageMotion,
 } from "../../components/velora/PlatformKit";
 import { useAuth } from "../../context/AuthContext";
-import {
-  getReservationDetail,
-  uploadPaymentProof,
-} from "../../services/reservationService";
+import { getReservationDetail } from "../../services/reservationService";
 
 const statusTone = {
   pending: "warning",
@@ -64,24 +61,42 @@ const formatDateTime = (value) =>
     timeStyle: "short",
   });
 
+const normalizeReceipt = (reservation, authUser) => {
+  return {
+    id: reservation.id || reservation._id,
+    userName:
+      reservation.userName || reservation.user?.name || authUser?.name || "-",
+    userEmail:
+      reservation.userEmail ||
+      reservation.user?.email ||
+      authUser?.email ||
+      "-",
+    roomType: reservation.roomType || reservation.room?.roomType || "-",
+    roomNumber: reservation.roomNumber || reservation.room?.roomNumber || "-",
+    checkIn: reservation.checkIn,
+    checkOut: reservation.checkOut,
+    durationHours: reservation.durationHours,
+    totalPrice: reservation.totalPrice || 0,
+    paymentMethod: reservation.paymentMethod,
+    paymentStatus: reservation.paymentStatus,
+    status: reservation.status,
+  };
+};
+
 const Receipt = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { token, authUser } = useAuth();
 
   const [receipt, setReceipt] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [paymentProof, setPaymentProof] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [uploadMessage, setUploadMessage] = useState("");
-
   useEffect(() => {
     const fetchReceipt = async () => {
       try {
         const data = await getReservationDetail(id, token);
-        setReceipt(data.reservation);
+        setReceipt(normalizeReceipt(data.reservation, authUser));
       } catch (err) {
         setError(
           err.response?.data?.message || "Gagal mengambil detail reservasi",
@@ -94,41 +109,7 @@ const Receipt = () => {
     if (token && id) {
       fetchReceipt();
     }
-  }, [id, token]);
-
-  const handleUploadProof = async () => {
-    if (!paymentProof.trim()) {
-      setUploadMessage("Bukti pembayaran wajib diisi.");
-      return;
-    }
-
-    try {
-      setUploading(true);
-      setUploadMessage("");
-
-      await uploadPaymentProof(
-        receipt.id,
-        {
-          paymentProof,
-        },
-        token,
-      );
-
-      setUploadMessage(
-        "Bukti pembayaran berhasil dikirim. Menunggu verifikasi.",
-      );
-
-      const refreshed = await getReservationDetail(receipt.id, token);
-      setReceipt(refreshed.reservation);
-      setPaymentProof("");
-    } catch (err) {
-      setUploadMessage(
-        err.response?.data?.message || "Gagal mengunggah bukti pembayaran",
-      );
-    } finally {
-      setUploading(false);
-    }
-  };
+  }, [id, token, authUser]);
 
   return (
     <UserLayout>
@@ -312,36 +293,23 @@ const Receipt = () => {
                 receipt.paymentStatus !== "paid" && (
                   <div className="mt-6 rounded-3xl border border-(--border-soft) bg-white/70 p-5">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-(--muted)">
-                      Payment proof
+                      Online payment
                     </p>
 
                     <h4 className="mt-2 text-lg font-semibold text-(--navy)">
-                      Upload transfer proof
+                      Complete your payment
                     </h4>
 
                     <p className="mt-2 text-sm leading-6 text-(--muted)">
-                      Paste your proof image URL (temporary demo flow).
+                      Upload your transfer proof from the payment page.
                     </p>
 
-                    <input
-                      value={paymentProof}
-                      onChange={(e) => setPaymentProof(e.target.value)}
-                      placeholder="https://..."
-                      className="mt-4 w-full rounded-2xl border border-(--border-soft) bg-white px-4 py-3 text-sm outline-none focus:border-(--champagne)"
-                    />
-
-                    {uploadMessage && (
-                      <div className="mt-4 rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-700">
-                        {uploadMessage}
-                      </div>
-                    )}
-
                     <button
-                      onClick={handleUploadProof}
-                      disabled={uploading}
-                      className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-(--champagne) px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                      type="button"
+                      onClick={() => navigate(`/user/payment/${receipt.id}`)}
+                      className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-(--champagne) px-4 py-3 text-sm font-semibold text-white"
                     >
-                      {uploading ? "Submitting..." : "Submit Payment Proof"}
+                      Go to Payment Page
                     </button>
                   </div>
                 )}

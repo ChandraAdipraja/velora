@@ -279,9 +279,14 @@ const Reservations = () => {
                             </Badge>
 
                             {reservation.hasPaymentProof && (
-                              <span className="text-xs text-(--champagne)">
-                                Proof uploaded
-                              </span>
+                              <a
+                                href={`http://localhost:5000${reservation.paymentProof}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-xs font-semibold text-(--champagne) underline"
+                              >
+                                View proof
+                              </a>
                             )}
                           </div>
                         </td>

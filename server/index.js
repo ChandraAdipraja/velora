@@ -3,6 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const http = require("http");
 const { Server } = require("socket.io");
+const path = require("path");
 
 const connectDB = require("./config/db");
 
@@ -28,6 +29,11 @@ app.use(
   }),
 );
 
+app.use(
+  "/payment-proofs",
+  express.static(path.join(__dirname, "uploads/payments")),
+);
+
 app.use(express.json());
 
 /*
@@ -51,6 +57,8 @@ app.use("/api/reservations", reservationRoutes);
 app.use("/api/tickets", ticketRoutes);
 
 app.use("/api/admin", adminRoutes);
+
+app.use("/payment-proofs", express.static("uploads/payments"));
 
 /*
 ==================================

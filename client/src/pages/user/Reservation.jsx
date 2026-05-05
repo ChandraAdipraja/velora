@@ -175,13 +175,112 @@ const Reservation = () => {
 
         <motion.section
           variants={pageMotion}
-          className="max-w-3xl mx-auto w-full"
+          className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start"
         >
+          <GlassCard className="overflow-hidden p-0 lg:sticky lg:top-6 lg:self-start">
+            <div className="relative">
+              <img
+                src={
+                  room.image ||
+                  room.heroImage ||
+                  room.roomImage ||
+                  room.fallbackImage ||
+                  room.summaryImage ||
+                  "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80"
+                }
+                alt={room.roomName}
+                className="h-72 w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-linear-to-t from-[rgba(15,28,52,0.72)] via-[rgba(15,28,52,0.18)] to-transparent" />
+              <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-(--navy) backdrop-blur">
+                <Sparkles className="h-3.5 w-3.5 text-(--champagne)" />
+                Room overview
+              </div>
+              <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3 rounded-3xl border border-white/15 bg-white/12 p-4 text-white backdrop-blur-xl">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.24em] text-white/70">
+                    From
+                  </p>
+                  <p className="mt-1 text-2xl font-semibold">
+                    {formatCurrency(room.startingPrice)}
+                    <span className="ml-1 text-sm font-normal text-white/70">
+                      / hour
+                    </span>
+                  </p>
+                </div>
+                <Badge tone="gold">{room.availableUnits ?? 0} units</Badge>
+              </div>
+            </div>
+
+            <div className="space-y-5 p-5 sm:p-6">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-(--muted)">
+                  {room.roomName}
+                </p>
+                <h3 className="mt-2 text-2xl font-semibold text-(--navy)">
+                  {room.roomType} Room
+                </h3>
+                <p className="mt-3 text-sm leading-6 text-(--muted)">
+                  {room.summary ||
+                    "Comfortable room with premium amenities for your stay."}
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-(--border-soft) bg-white/70 p-4">
+                  <div className="flex items-center gap-2 text-(--champagne)">
+                    <CircleDollarSign className="h-4 w-4" />
+                    <span className="text-xs font-semibold uppercase tracking-[0.22em] text-(--muted)">
+                      Size
+                    </span>
+                  </div>
+                  <p className="mt-2 text-lg font-semibold text-(--navy)">
+                    {room.size || "-"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-(--border-soft) bg-white/70 p-4">
+                  <div className="flex items-center gap-2 text-(--champagne)">
+                    <ShieldCheck className="h-4 w-4" />
+                    <span className="text-xs font-semibold uppercase tracking-[0.22em] text-(--muted)">
+                      Capacity
+                    </span>
+                  </div>
+                  <p className="mt-2 text-lg font-semibold text-(--navy)">
+                    {room.capacity || room.occupancy || "-"}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-(--muted)">
+                  Facilities
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(room.facilities || []).length > 0 ? (
+                    room.facilities.map((facility) => (
+                      <span
+                        key={facility}
+                        className="rounded-full bg-[rgba(212,175,55,0.12)] px-3 py-1.5 text-xs font-medium text-(--navy)"
+                      >
+                        {facility}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-(--muted)">
+                      No facilities listed
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </GlassCard>
+
           <GlassCard className="p-5 sm:p-6">
             <div className="flex items-center justify-between gap-4 mb-6">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-(--muted)">
-                  {room.roomName}
+                  Booking form
                 </p>
                 <h3 className="mt-2 text-2xl font-semibold text-(--navy)">
                   Book your stay
@@ -197,7 +296,6 @@ const Reservation = () => {
               </div>
             </div>
 
-            {/* Date & Time Selection */}
             <div className="relative z-10 space-y-4">
               <h4 className="text-sm font-semibold text-(--navy) mb-4">
                 Select your dates and times
@@ -223,7 +321,6 @@ const Reservation = () => {
               </div>
             </div>
 
-            {/* Duration Info */}
             {checkIn && checkOut && (
               <div className="mt-6 rounded-2xl border border-(--champagne) bg-[rgba(212,175,55,0.08)] p-4">
                 <div className="grid grid-cols-3 gap-4">
@@ -283,7 +380,6 @@ const Reservation = () => {
               </div>
             )}
 
-            {/* Payment Method */}
             <div className="mt-6">
               <h4 className="text-sm font-semibold text-(--navy) mb-3">
                 Choose payment method
@@ -320,7 +416,6 @@ const Reservation = () => {
               </div>
             )}
 
-            {/* Reserve Button */}
             <button
               onClick={handleReserve}
               disabled={loading || !canReserve}

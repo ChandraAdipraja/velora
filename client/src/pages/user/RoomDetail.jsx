@@ -218,6 +218,10 @@ const RoomDetail = () => {
                       startingPrice: room.hourlyPrice,
                       availableUnits: room.availableUnits,
                       summary: room.summary,
+                      image: room.heroImages[0],
+                      facilities: room.facilities,
+                      size: room.size,
+                      capacity: room.occupancy,
                     },
                   },
                 })

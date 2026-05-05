@@ -18,6 +18,14 @@ dotenv.config();
 connectDB();
 
 const app = express();
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"],
+  },
+});
 
 /*
 MIDDLEWARE
@@ -35,6 +43,12 @@ app.use(
 );
 
 app.use(express.json());
+
+// Middleware to attach io to request
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 
 /*
 TEST ROUTE
@@ -65,15 +79,6 @@ app.use("/payment-proofs", express.static("uploads/payments"));
 SOCKET.IO SETUP
 ==================================
 */
-
-const server = http.createServer(app);
-
-const io = new Server(server, {
-  cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"],
-  },
-});
 
 io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);

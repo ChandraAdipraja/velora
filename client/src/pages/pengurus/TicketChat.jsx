@@ -9,6 +9,7 @@ import {
   SectionHeader,
   pageMotion,
 } from "../../components/velora/PlatformKit";
+import { closeTicket } from "../../services/ticketService";
 import { useAuth } from "../../context/AuthContext";
 import {
   getTicketDetail,
@@ -141,6 +142,20 @@ const TicketChat = () => {
     }
   };
 
+  const handleCloseTicket = async () => {
+    const confirmClose = window.confirm("Tutup ticket ini?");
+    if (!confirmClose) return;
+
+    try {
+      await closeTicket(id, token);
+      await fetchChatData();
+    } catch (err) {
+      setError(err.response?.data?.message || "Gagal menutup ticket");
+    }
+  };
+
+  const isClosed = ticket?.status === "closed";
+
   if (loading) {
     return (
       <PengurusLayout>
@@ -174,6 +189,15 @@ const TicketChat = () => {
             title={`Support conversation for ticket #${ticket?._id}`}
             description="Communicate directly with the guest within a reservation-linked support channel."
           />
+          {ticket?.status !== "closed" && (
+            <button
+              type="button"
+              onClick={handleCloseTicket}
+              className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600"
+            >
+              Close Ticket
+            </button>
+          )}
         </motion.section>
 
         <motion.section
@@ -336,14 +360,17 @@ const TicketChat = () => {
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleSendMessage();
                     }}
-                    placeholder="Type your response..."
+                    disabled={isClosed}
+                    placeholder={
+                      isClosed ? "Ticket closed" : "Type your response..."
+                    }
                     className="h-12 w-full rounded-full border border-(--border-soft) bg-white px-5 text-sm outline-none focus:border-(--champagne)"
                   />
 
                   <button
                     type="button"
                     onClick={handleSendMessage}
-                    disabled={sending}
+                    disabled={sending || isClosed}
                     className="inline-flex h-12 shrink-0 items-center gap-2 rounded-full bg-(--champagne) px-6 text-sm font-semibold text-white disabled:opacity-60"
                   >
                     <Send className="h-4 w-4" />

@@ -50,7 +50,7 @@ const RoomsManagement = () => {
 
   const fetchRooms = async () => {
     const res = await getAllRooms();
-    setRooms(res.data.rooms || []);
+    setRooms(res.rooms || []);
   };
 
   useEffect(() => {

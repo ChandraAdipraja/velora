@@ -91,16 +91,6 @@ const RoomCard = ({ room }) => {
         </div>
 
         <div className="flex flex-col gap-3 border-t border-soft pt-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-sm text-muted">
-              <Users2 className="h-4 w-4 text-champagne" />
-              <span>
-                {room.description ||
-                  "Luxury hospitality with a calm booking flow"}
-              </span>
-            </div>
-          </div>
-
           <div className="flex gap-2">
             <Link to={detailPath}>
               <Button variant="ghost" className="gap-2 px-4 py-2">

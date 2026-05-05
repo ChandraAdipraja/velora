@@ -141,6 +141,8 @@ const TicketChat = () => {
     }
   };
 
+  const isClosed = ticket?.status === "closed";
+
   if (loading) {
     return (
       <UserLayout>
@@ -335,14 +337,17 @@ const TicketChat = () => {
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleSendMessage();
                     }}
-                    placeholder="Type your message..."
+                    disabled={isClosed}
+                    placeholder={
+                      isClosed ? "Ticket closed" : "Type your message..."
+                    }
                     className="h-12 w-full rounded-full border border-(--border-soft) bg-white px-5 text-sm outline-none focus:border-(--champagne)"
                   />
 
                   <button
                     type="button"
                     onClick={handleSendMessage}
-                    disabled={sending}
+                    disabled={sending || isClosed}
                     className="inline-flex h-12 shrink-0 items-center gap-2 rounded-full bg-(--champagne) px-6 text-sm font-semibold text-white disabled:opacity-60"
                   >
                     <Send className="h-4 w-4" />

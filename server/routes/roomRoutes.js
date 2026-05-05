@@ -7,6 +7,7 @@ const {
   getAllRooms,
   getGroupedRoomsByType,
   getRoomUnitsByType,
+  checkRoomAvailabilityByType,
   createRoom,
   updateRoom,
   deleteRoom,
@@ -14,6 +15,7 @@ const {
 
 router.get("/grouped/by-type", getGroupedRoomsByType);
 router.get("/type/:roomType", getRoomUnitsByType);
+router.get("/type/:roomType/availability", checkRoomAvailabilityByType);
 router.get("/", getAllRooms);
 
 router.post("/", protect, adminOnly, createRoom);

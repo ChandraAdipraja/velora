@@ -7,6 +7,7 @@ const {
   getTicketMessages,
   sendTicketMessage,
   getTicketDetail,
+  closeTicket,
 } = require("../controllers/ticketController");
 
 const protect = require("../middleware/authMiddleware");
@@ -47,6 +48,12 @@ router.patch(
   protect,
   authorizeRoles("pengurus", "admin"),
   takeTicket,
+);
+router.patch(
+  "/:id/close",
+  protect,
+  authorizeRoles("pengurus", "admin"),
+  closeTicket,
 );
 
 /*

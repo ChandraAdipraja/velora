@@ -94,7 +94,7 @@ const Dashboard = () => {
           ]);
 
         setReservations(reservationData.reservations || []);
-        setRooms(roomData.data?.rooms || []);
+        setRooms(roomData.rooms || []);
         setOpenTickets(openTicketData.tickets || []);
         setAssignedTickets(assignedTicketData.tickets || []);
       } catch (error) {
@@ -376,36 +376,6 @@ const Dashboard = () => {
                       <Badge tone={item.tone}>{item.tone}</Badge>
                     </div>
                   </div>
-                ))}
-              </div>
-            </GlassCard>
-
-            <GlassCard className="min-w-0">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-champagne">
-                    Quick actions
-                  </p>
-                  <h3 className="mt-2 text-2xl font-semibold text-navy">
-                    Admin shortcuts
-                  </h3>
-                </div>
-                <Sparkles className="h-5 w-5 text-champagne" />
-              </div>
-
-              <div className="mt-5 flex flex-wrap gap-2">
-                {[
-                  "Manage rooms",
-                  "Review reservations",
-                  "View tickets",
-                  "Export report",
-                ].map((action) => (
-                  <button
-                    key={action}
-                    className="rounded-full border border-soft bg-white/80 px-4 py-2 text-sm font-medium text-navy transition hover:bg-white"
-                  >
-                    {action}
-                  </button>
                 ))}
               </div>
             </GlassCard>

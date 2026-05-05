@@ -24,6 +24,21 @@ export const getRoomDetailByType = async (roomType) => {
   return response.data;
 };
 
+export const getRoomAvailabilityByType = async (
+  roomType,
+  checkIn,
+  checkOut,
+) => {
+  const response = await axios.get(`${API_URL}/type/${roomType}/availability`, {
+    params: {
+      checkIn,
+      checkOut,
+    },
+  });
+
+  return response.data;
+};
+
 // ADMIN
 export const createRoom = async (payload, token) => {
   const response = await axios.post(API_URL, payload, authHeader(token));

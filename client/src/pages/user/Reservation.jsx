@@ -1,10 +1,9 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   CircleDollarSign,
   CreditCard,
-  MapPin,
   ShieldCheck,
   Sparkles,
   TimerReset,
@@ -16,8 +15,10 @@ import {
   SectionHeader,
   pageMotion,
 } from "../../components/velora/PlatformKit";
+import DateTimePicker from "../../components/ui/DateTimePicker";
 import { useAuth } from "../../context/AuthContext";
 import { createReservation } from "../../services/reservationService";
+import { getRoomAvailabilityByType } from "../../services/roomService";
 
 const formatCurrency = (value) => `Rp ${value.toLocaleString("id-ID")}`;
 
@@ -32,7 +33,34 @@ const Reservation = () => {
   const [checkOut, setCheckOut] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("online");
   const [loading, setLoading] = useState(false);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availability, setAvailability] = useState(null);
   const [error, setError] = useState("");
+
+  const getCurrentDateTime = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const date = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+
+    // Jika ada menit, round up ke jam berikutnya
+    const nextHour = now.getMinutes() > 0 ? now.getHours() + 1 : now.getHours();
+    const nextHourFormatted = String(nextHour).padStart(2, "0");
+
+    // Format: YYYY-MM-DDTHH:00
+    return `${year}-${month}-${date}T${nextHourFormatted}:00`;
+  };
+
+  const getMinCheckOutDateTime = () => {
+    if (!checkIn) return "";
+
+    const checkInDate = new Date(checkIn);
+    return new Date(checkInDate.getTime() + 3 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 16);
+  };
 
   const durationHours = useMemo(() => {
     if (!checkIn || !checkOut) return 3;
@@ -47,6 +75,37 @@ const Reservation = () => {
   const subtotal = durationHours * (room?.startingPrice || 0);
   const serviceCharge = Math.round(subtotal * 0.08);
   const total = subtotal + serviceCharge;
+
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      if (!room?.roomType || !checkIn || !checkOut) {
+        setAvailability(null);
+        return;
+      }
+
+      try {
+        setAvailabilityLoading(true);
+        const data = await getRoomAvailabilityByType(
+          room.roomType,
+          checkIn,
+          checkOut,
+        );
+
+        setAvailability(data);
+      } catch (err) {
+        setAvailability(null);
+        console.error(err);
+      } finally {
+        setAvailabilityLoading(false);
+      }
+    };
+
+    fetchAvailability();
+  }, [room?.roomType, checkIn, checkOut]);
+
+  const isRangeAvailable = availability?.isAvailable ?? true;
+  const canReserve =
+    !!checkIn && !!checkOut && !availabilityLoading && isRangeAvailable;
 
   const paymentOptions = [
     {
@@ -116,78 +175,120 @@ const Reservation = () => {
 
         <motion.section
           variants={pageMotion}
-          className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]"
+          className="max-w-3xl mx-auto w-full"
         >
           <GlassCard className="p-5 sm:p-6">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-4 mb-6">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-(--muted)">
-                  Booking form
-                </p>
-                <h3 className="mt-2 text-2xl font-semibold text-(--navy)">
-                  Hourly reservation details
-                </h3>
-              </div>
-              <Badge tone="gold">Minimum 3 hours</Badge>
-            </div>
-
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-[0.24em] text-(--muted)">
-                  Check-in datetime
-                </span>
-                <input
-                  type="datetime-local"
-                  value={checkIn}
-                  onChange={(event) => setCheckIn(event.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-(--border-soft) bg-white/80 px-4 py-3 text-sm outline-none focus:border-(--champagne)"
-                />
-              </label>
-
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-[0.24em] text-(--muted)">
-                  Check-out datetime
-                </span>
-                <input
-                  type="datetime-local"
-                  value={checkOut}
-                  onChange={(event) => setCheckOut(event.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-(--border-soft) bg-white/80 px-4 py-3 text-sm outline-none focus:border-(--champagne)"
-                />
-              </label>
-            </div>
-
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-(--border-soft) bg-white/70 p-4">
-                <p className="text-xs uppercase tracking-[0.22em] text-(--muted)">
-                  Duration
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-(--navy)">
-                  {durationHours} hours
-                </p>
-                <p className="mt-1 text-sm text-(--muted)">
-                  Auto-calculated with a 3-hour minimum.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-(--border-soft) bg-white/70 p-4">
-                <p className="text-xs uppercase tracking-[0.22em] text-(--muted)">
-                  Selected room
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-(--navy)">
                   {room.roomName}
                 </p>
-                <p className="mt-1 text-sm text-(--muted)">
-                  {formatCurrency(room.startingPrice)} / hour
+                <h3 className="mt-2 text-2xl font-semibold text-(--navy)">
+                  Book your stay
+                </h3>
+              </div>
+              <div className="text-right">
+                <p className="text-xs uppercase tracking-[0.22em] text-(--muted)">
+                  Rate per hour
+                </p>
+                <p className="text-2xl font-semibold text-(--champagne)">
+                  {formatCurrency(room.startingPrice)}
                 </p>
               </div>
             </div>
 
+            {/* Date & Time Selection */}
+            <div className="relative z-10 space-y-4">
+              <h4 className="text-sm font-semibold text-(--navy) mb-4">
+                Select your dates and times
+              </h4>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <DateTimePicker
+                  value={checkIn}
+                  onChange={setCheckIn}
+                  label="Check-in"
+                  placeholder="Select date and time"
+                  minDateTime={getCurrentDateTime()}
+                  type="checkin"
+                />
+
+                <DateTimePicker
+                  value={checkOut}
+                  onChange={setCheckOut}
+                  label="Check-out"
+                  placeholder="Select date and time"
+                  minDateTime={getMinCheckOutDateTime()}
+                  type="checkout"
+                />
+              </div>
+            </div>
+
+            {/* Duration Info */}
+            {checkIn && checkOut && (
+              <div className="mt-6 rounded-2xl border border-(--champagne) bg-[rgba(212,175,55,0.08)] p-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.22em] text-(--muted)">
+                      Duration
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-(--navy)">
+                      {durationHours}h
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.22em] text-(--muted)">
+                      Subtotal
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-(--navy)">
+                      {formatCurrency(subtotal)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.22em] text-(--muted)">
+                      Service charge
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-(--navy)">
+                      {formatCurrency(serviceCharge)}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 border-t border-(--champagne) pt-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-(--muted)">
+                      Total amount
+                    </span>
+                    <span className="text-2xl font-semibold text-(--champagne)">
+                      {formatCurrency(total)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {checkIn && checkOut && (
+              <div
+                className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
+                  availabilityLoading
+                    ? "border-(--border-soft) bg-white/70 text-(--muted)"
+                    : isRangeAvailable
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : "border-red-200 bg-red-50 text-red-600"
+                }`}
+              >
+                {availabilityLoading
+                  ? "Checking room availability for your selected time..."
+                  : isRangeAvailable
+                    ? `Available: ${availability?.availableUnits || 0} of ${availability?.totalUnits || 0} rooms are free for this time range.`
+                    : "No rooms are available for this time range."}
+              </div>
+            )}
+
+            {/* Payment Method */}
             <div className="mt-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-(--muted)">
-                Payment method
-              </p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <h4 className="text-sm font-semibold text-(--navy) mb-3">
+                Choose payment method
+              </h4>
+              <div className="grid gap-3 sm:grid-cols-2">
                 {paymentOptions.map((method) => (
                   <button
                     key={method.id}
@@ -219,86 +320,22 @@ const Reservation = () => {
               </div>
             )}
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-(--border-soft) bg-white/70 p-4">
-                <p className="text-xs uppercase tracking-[0.22em] text-(--muted)">
-                  Arrival summary
-                </p>
-                <p className="mt-2 font-semibold text-(--navy)">
-                  {room.roomName}
-                </p>
-                <p className="mt-1 text-sm text-(--muted)">
-                  {room.availableUnits} rooms available
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-(--border-soft) bg-white/70 p-4">
-                <p className="text-xs uppercase tracking-[0.22em] text-(--muted)">
-                  Location
-                </p>
-                <p className="mt-2 flex items-center gap-2 font-semibold text-(--navy)">
-                  <MapPin className="h-4 w-4 text-(--champagne)" />
-                  Sky tower, premium floor
-                </p>
-              </div>
-            </div>
+            {/* Reserve Button */}
+            <button
+              onClick={handleReserve}
+              disabled={loading || !canReserve}
+              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-(--champagne) px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(212,175,55,0.24)] transition hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading
+                ? "Creating reservation..."
+                : checkIn && checkOut && availabilityLoading
+                  ? "Checking availability..."
+                  : !isRangeAvailable && checkIn && checkOut
+                    ? "No rooms available"
+                    : "Confirm & Reserve"}
+              <TimerReset className="h-4 w-4" />
+            </button>
           </GlassCard>
-
-          <div className="space-y-6">
-            <GlassCard className="p-6 lg:sticky lg:top-6 lg:self-start">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-(--muted)">
-                    Price breakdown
-                  </p>
-                  <h3 className="mt-2 text-2xl font-semibold text-(--navy)">
-                    Reservation summary
-                  </h3>
-                </div>
-                <CircleDollarSign className="h-5 w-5 text-(--champagne)" />
-              </div>
-
-              <div className="mt-6 space-y-3">
-                {[
-                  [
-                    "Room rate",
-                    `${formatCurrency(room.startingPrice)} × ${durationHours} hours`,
-                  ],
-                  ["Subtotal", formatCurrency(subtotal)],
-                  ["Service charge", formatCurrency(serviceCharge)],
-                  ["Total", formatCurrency(total)],
-                ].map(([label, value]) => (
-                  <div
-                    key={label}
-                    className="flex items-center justify-between rounded-2xl border border-(--border-soft) bg-white/70 px-4 py-3 text-sm"
-                  >
-                    <span className="text-(--muted)">{label}</span>
-                    <span className="font-semibold text-(--navy)">{value}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 flex flex-wrap gap-2">
-                <Badge tone="success">
-                  <ShieldCheck className="mr-2 h-3.5 w-3.5" />
-                  Secure payment
-                </Badge>
-                <Badge tone="gold">
-                  <Sparkles className="mr-2 h-3.5 w-3.5" />
-                  Luxury checkout
-                </Badge>
-              </div>
-
-              <button
-                onClick={handleReserve}
-                disabled={loading}
-                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-(--champagne) px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(212,175,55,0.24)] transition hover:-translate-y-0.5 disabled:opacity-60"
-              >
-                {loading ? "Creating reservation..." : "Reserve room"}
-                <TimerReset className="h-4 w-4" />
-              </button>
-            </GlassCard>
-          </div>
         </motion.section>
       </motion.div>
     </UserLayout>

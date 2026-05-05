@@ -258,6 +258,39 @@ const getTicketDetail = async (req, res) => {
   }
 };
 
+const closeTicket = async (req, res) => {
+  try {
+    const ticket = await SupportTicket.findById(req.params.id);
+
+    if (!ticket) {
+      return res.status(404).json({
+        message: "Ticket tidak ditemukan",
+      });
+    }
+
+    if (
+      req.user.role === "pengurus" &&
+      ticket.assignedStaff?.toString() !== req.user.id
+    ) {
+      return res.status(403).json({
+        message: "Ticket ini bukan milik pengurus ini",
+      });
+    }
+
+    ticket.status = "closed";
+    await ticket.save();
+
+    return res.status(200).json({
+      message: "Ticket berhasil ditutup",
+      ticket,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   getUserTickets,
   getOpenTickets,
@@ -266,4 +299,5 @@ module.exports = {
   getTicketMessages,
   sendTicketMessage,
   getTicketDetail,
+  closeTicket,
 };

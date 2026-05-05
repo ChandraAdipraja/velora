@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import socket from "../../socket";
 import { motion } from "framer-motion";
 import { Filter } from "lucide-react";
 import UserLayout from "../../layouts/UserLayout";
@@ -32,6 +33,9 @@ const Rooms = () => {
   }, [rooms, query, selectedType]);
 
   useEffect(() => {
+    // Connect socket for real-time updates
+    socket.connect();
+
     const fetchRooms = async () => {
       try {
         const data = await getGroupedRooms();
@@ -44,6 +48,31 @@ const Rooms = () => {
     };
 
     fetchRooms();
+
+    // Polling interval to refresh room availability every 5 seconds
+    const pollInterval = setInterval(fetchRooms, 5000);
+
+    // Listen for real-time socket events
+    socket.on("reservation_created", () => {
+      fetchRooms();
+    });
+
+    socket.on("reservation_updated", () => {
+      fetchRooms();
+    });
+
+    socket.on("reservation_cancelled", () => {
+      fetchRooms();
+    });
+
+    // Cleanup
+    return () => {
+      clearInterval(pollInterval);
+      socket.off("reservation_created");
+      socket.off("reservation_updated");
+      socket.off("reservation_cancelled");
+      socket.disconnect();
+    };
   }, []);
 
   return (

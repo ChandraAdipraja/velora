@@ -88,3 +88,17 @@ export const getTicketDetail = async (ticketId, token) => {
 
   return response.data;
 };
+
+export const closeTicket = async (ticketId, token) => {
+  const response = await axios.patch(
+    `${API_URL}/${ticketId}/close`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  return response.data;
+};

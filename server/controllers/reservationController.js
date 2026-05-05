@@ -121,6 +121,14 @@ const createReservation = async (req, res) => {
       user: req.user.id,
     });
 
+    // Emit socket event for real-time room availability update
+    if (req.io) {
+      req.io.emit("reservation_created", {
+        roomType: selectedRoom.roomType,
+        reservation: reservation._id,
+      });
+    }
+
     return res.status(201).json({
       message: "Reservasi berhasil dibuat",
       reservation,
@@ -311,6 +319,19 @@ const uploadPaymentProof = async (req, res) => {
       message: error.message,
     });
   }
+  // Emit socket event for real-time room availability update
+  if (req.io) {
+    if (status === "cancelled") {
+      req.io.emit("reservation_cancelled", {
+        reservationId: reservation._id,
+      });
+    } else if (status === "checked_in" || status === "completed") {
+      req.io.emit("reservation_updated", {
+        reservationId: reservation._id,
+        status,
+      });
+    }
+  }
 };
 
 /*
@@ -460,6 +481,13 @@ const updateReservationStatus = async (req, res) => {
     }
 
     reservation.status = status;
+
+    if (status === "completed") {
+      await SupportTicket.findOneAndUpdate(
+        { reservation: reservation._id },
+        { status: "closed" },
+      );
+    }
 
     // AUTO MARK PAID WHEN CHECK-IN
     if (

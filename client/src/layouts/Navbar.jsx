@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 import { CalendarDays, LogOut, Sparkles } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -18,48 +18,52 @@ const Navbar = () => {
     return "/user/dashboard";
   };
 
+  const protectedLink = authUser ? getDashboardPath() : "/login";
+
   return (
     <header className="sticky top-4 z-50 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-7xl items-center justify-between rounded-full border border-white/70 bg-white/70 px-4 py-3 shadow-[0_18px_60px_rgba(15,23,42,0.1)] backdrop-blur-2xl sm:px-5">
         <div className="flex items-center gap-4">
-          <Link to={getDashboardPath()} className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--navy)] text-white shadow-[0_12px_24px_rgba(19,34,63,0.2)]">
               <Sparkles className="h-5 w-5" />
             </span>
+
             <span className="leading-tight">
-              <span className="block text-sm font-semibold tracking-[0.24em] text-[var(--navy)] uppercase">
+              <span className="block text-sm font-semibold uppercase tracking-[0.24em] text-[var(--navy)]">
                 Velora
               </span>
-              <span className="block text-xs text-[var(--muted)]">
-                Hotel Kit
-              </span>
+              <span className="block text-xs text-[var(--muted)]">Hotel</span>
             </span>
           </Link>
 
           <nav className="hidden items-center gap-2 lg:flex">
-            <Link
-              to="/rooms"
+            <a
+              href="#rooms"
               className="rounded-full px-4 py-2 text-sm text-[var(--muted)] transition hover:bg-[var(--champagne-soft)] hover:text-[var(--navy)]"
             >
               Rooms
-            </Link>
-            <Link
-              to="/booking"
+            </a>
+
+            <a
+              href="#booking-flow"
               className="rounded-full px-4 py-2 text-sm text-[var(--muted)] transition hover:bg-[var(--champagne-soft)] hover:text-[var(--navy)]"
             >
-              Booking Desk
-            </Link>
-            <Link
-              to="/profile"
+              Booking Flow
+            </a>
+
+            <a
+              href="#testimonials"
               className="rounded-full px-4 py-2 text-sm text-[var(--muted)] transition hover:bg-[var(--champagne-soft)] hover:text-[var(--navy)]"
             >
-              Guest Profile
-            </Link>
+              Testimonials
+            </a>
+
             <Link
-              to="/admin/analytics"
+              to={protectedLink}
               className="rounded-full px-4 py-2 text-sm text-[var(--muted)] transition hover:bg-[var(--champagne-soft)] hover:text-[var(--navy)]"
             >
-              Analytics
+              {authUser ? "Dashboard" : "Reserve"}
             </Link>
           </nav>
         </div>
@@ -76,7 +80,15 @@ const Navbar = () => {
                 </p>
               </div>
 
+              <Link
+                to={getDashboardPath()}
+                className="hidden rounded-full border border-[var(--border-soft)] bg-white/70 px-4 py-2 text-sm font-medium text-[var(--navy)] transition hover:bg-white sm:inline-flex"
+              >
+                Dashboard
+              </Link>
+
               <button
+                type="button"
                 onClick={handleLogout}
                 className="inline-flex items-center gap-2 rounded-full bg-[var(--navy)] px-4 py-2 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-[#0f1c34]"
               >
@@ -92,6 +104,7 @@ const Navbar = () => {
               >
                 Login
               </Link>
+
               <Link
                 to="/register"
                 className="inline-flex items-center gap-2 rounded-full border border-[var(--border-soft)] bg-white/70 px-4 py-2 text-sm font-medium text-[var(--navy)] transition hover:bg-white"

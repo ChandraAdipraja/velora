@@ -16,6 +16,14 @@ const getGroupedRoomsByType = async (req, res) => {
       roomNumber: 1,
     });
 
+    // Get current reservations (active ones)
+    const now = new Date();
+    const activeReservations = await Reservation.find({
+      status: { $ne: "cancelled" },
+      checkIn: { $lt: now },
+      checkOut: { $gt: now },
+    });
+
     const grouped = Object.values(
       rooms.reduce((acc, room) => {
         if (!acc[room.roomType]) {
@@ -27,6 +35,7 @@ const getGroupedRoomsByType = async (req, res) => {
             capacity: room.capacity,
             size: room.size,
             image: room.image,
+            description: room.description,
             facilities: room.facilities || [],
             totalUnits: 0,
             availableUnits: 0,
@@ -34,7 +43,15 @@ const getGroupedRoomsByType = async (req, res) => {
         }
 
         acc[room.roomType].totalUnits += 1;
-        acc[room.roomType].availableUnits += 1;
+
+        // Check if this room has an active reservation
+        const isOccupied = activeReservations.some(
+          (res) => res.room.toString() === room._id.toString(),
+        );
+
+        if (!isOccupied) {
+          acc[room.roomType].availableUnits += 1;
+        }
 
         return acc;
       }, {}),
@@ -80,12 +97,82 @@ const getRoomUnitsByType = async (req, res) => {
   }
 };
 
+const checkRoomAvailabilityByType = async (req, res) => {
+  try {
+    const { roomType } = req.params;
+    const { checkIn, checkOut } = req.query;
+
+    if (!checkIn || !checkOut) {
+      return res.status(400).json({
+        message: "checkIn dan checkOut wajib diisi",
+      });
+    }
+
+    const start = new Date(checkIn);
+    const end = new Date(checkOut);
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return res.status(400).json({
+        message: "Format tanggal tidak valid",
+      });
+    }
+
+    if (end <= start) {
+      return res.status(400).json({
+        message: "Check-out harus setelah check-in",
+      });
+    }
+
+    const rooms = await Room.find({
+      roomType,
+      status: "available",
+    }).sort({ roomNumber: 1 });
+
+    if (!rooms.length) {
+      return res.status(404).json({
+        message: "Tipe kamar tidak ditemukan",
+      });
+    }
+
+    const occupiedRoomIds = await Reservation.find({
+      room: { $in: rooms.map((room) => room._id) },
+      status: { $ne: "cancelled" },
+      checkIn: { $lt: end },
+      checkOut: { $gt: start },
+    }).distinct("room");
+
+    const availableRooms = rooms.filter(
+      (room) =>
+        !occupiedRoomIds.some(
+          (occupiedRoomId) => occupiedRoomId.toString() === room._id.toString(),
+        ),
+    );
+
+    return res.json({
+      roomType,
+      checkIn: start,
+      checkOut: end,
+      totalUnits: rooms.length,
+      availableUnits: availableRooms.length,
+      isAvailable: availableRooms.length > 0,
+      availableRooms: availableRooms.map((room) => ({
+        id: room._id,
+        roomNumber: room.roomNumber,
+        roomType: room.roomType,
+      })),
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 const createRoom = async (req, res) => {
   try {
     const {
       roomNumber,
       roomType,
       pricePerHour,
+      description,
       capacity,
       size,
       facilities,
@@ -111,6 +198,7 @@ const createRoom = async (req, res) => {
       roomNumber,
       roomType,
       pricePerHour,
+      description,
       capacity,
       size,
       facilities,
@@ -175,6 +263,7 @@ module.exports = {
   getAllRooms,
   getGroupedRoomsByType,
   getRoomUnitsByType,
+  checkRoomAvailabilityByType,
   createRoom,
   updateRoom,
   deleteRoom,
